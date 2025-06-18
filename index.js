@@ -2,29 +2,21 @@ import express from 'express';
 import Redis from 'ioredis';
 
 const app = express();
-app.set('trust proxy', true);
+app.set('trust proxy', true); // Ensures correct IP handling behind Railway proxy
 
+// ✅ Redis client
 const redis = new Redis(process.env.REDIS_URL, {
   maxRetriesPerRequest: null
 });
 
+// ✅ Shared ID generator
 const generateId = async (prefix, key) => {
   const count = await redis.incr(key);
   const padded = String(count).padStart(4, '0');
   return `${prefix}-${padded}`;
 };
 
-app.get('/init', async (req, res) => {
-  try {
-    await redis.set('eq_counter', 4000);
-    await redis.set('qt_counter', 4000);
-    await redis.set('jb_counter', 4000);
-    res.send('All counters set to 4000.');
-  } catch (err) {
-    res.status(500).json({ error: 'Failed to initialize counters', details: err.message });
-  }
-});
-
+// ✅ /eq — Enquiry Quote ID
 app.get('/eq', async (req, res) => {
   try {
     const id = await generateId('EQ', 'eq_counter');
@@ -34,6 +26,7 @@ app.get('/eq', async (req, res) => {
   }
 });
 
+// ✅ /qt — Formal Quote ID
 app.get('/qt', async (req, res) => {
   try {
     const id = await generateId('QT', 'qt_counter');
@@ -43,6 +36,7 @@ app.get('/qt', async (req, res) => {
   }
 });
 
+// ✅ /jb — Job ID
 app.get('/jb', async (req, res) => {
   try {
     const id = await generateId('JB', 'jb_counter');
@@ -52,6 +46,7 @@ app.get('/jb', async (req, res) => {
   }
 });
 
+// ✅ Start server
 const PORT = process.env.PORT || 8080;
 app.listen(PORT, () => {
   console.log(`Counter microservice running on port ${PORT}`);
